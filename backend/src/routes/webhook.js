@@ -1,97 +1,102 @@
 const express = require('express');
 const router = express.Router();
 const { sendIntakeEmail } = require('../services/email-service');
-const { getCallDetails } = require('../services/bland-service');
+const { parseTranscript, calculateAge } = require('../services/transcript-parser');
 
 router.post('/webhook', async (req, res) => {
   try {
     console.log('📞 Webhook received from Bland AI');
-    console.log('📦 Webhook payload:', JSON.stringify(req.body, null, 2));
     
-    const callId = req.body.call_id;
-    const message = req.body.message || '';
+    const payload = req.body;
+    const callId = payload.call_id;
+    const status = payload.status;
     
-    // Check if this is a call-end event
-    const isCallEnd = message.includes('Ending call:') || 
-                      message.includes('[FINISH]') ||
-                      message.includes('call ended') || 
-                      message.includes('Call ended') ||
-                      message.includes('completed');
-    
-    if (!isCallEnd) {
-      console.log('⏭️  Skipping - not a call-end event');
+    // Only process completed calls
+    if (status !== 'completed') {
+      console.log('⏭️  Skipping - call not completed yet');
       return res.json({ success: true, message: 'Webhook received' });
     }
     
-    console.log('🎉 CALL ENDED! Processing...');
+    console.log('🎉 CALL COMPLETED! Processing...');
+    console.log('📋 Full payload:', JSON.stringify(payload, null, 2));
     
-    if (!callId) {
-      throw new Error('No call_id in webhook');
+    // Parse data from transcript
+    const transcript = payload.concatenated_transcript;
+    const parsedData = parseTranscript(transcript);
+    
+    if (!parsedData) {
+      console.log('⚠️  Could not parse transcript - using fallback data');
     }
     
-    console.log('🔍 Fetching call details from Bland...');
-    const callDetails = await getCallDetails(callId);
-    console.log('📋 Call details received:', JSON.stringify(callDetails, null, 2));
+    console.log('✅ Parsed data:', JSON.stringify(parsedData, null, 2));
     
+    // Transform to our email format
     const callData = {
       call_id: callId,
-      duration: callDetails.call_length || '0m 0s',
+      duration: `${Math.round(payload.call_length || 0)} minutes`,
       timestamp: new Date().toLocaleString('en-AU', { timeZone: 'Australia/Brisbane' }),
       confidence: '95%',
-      recording_url: callDetails.recording_url || '#',
+      recording_url: payload.recording_url || '#',
       
       client_info: {
-        full_name: callDetails.variables?.full_name || 'Unknown',
-        preferred_name: callDetails.variables?.preferred_name || '',
-        dob: callDetails.variables?.dob || '',
-        age: callDetails.variables?.age || 0,
-        address: callDetails.variables?.address || '',
-        phone: callDetails.variables?.phone || '',
-        email: callDetails.variables?.email || '',
-        mac_number: callDetails.variables?.mac_number || ''
+        full_name: parsedData?.full_name || 'Unknown',
+        preferred_name: parsedData?.preferred_name || '',
+        dob: parsedData?.dob || '',
+        age: parsedData?.dob ? calculateAge(parsedData.dob) : 0,
+        address: parsedData?.address || '',
+        phone: parsedData?.phone?.replace(/\s+/g, '') || '',
+        email: parsedData?.email || '',
+        mac_number: parsedData?.mac_number?.replace(/\s+/g, '') || ''
       },
       
       dietary: {
-        allergies: callDetails.variables?.allergies || [],
-        conditions: callDetails.variables?.conditions || [],
-        texture: callDetails.variables?.texture || 'Standard'
+        allergies: parsedData?.allergies || [],
+        allergiesCritical: (parsedData?.allergies?.length || 0) > 0,
+        conditions: parsedData?.dietary_needs || [],
+        texture: parsedData?.dietary_needs?.includes('Texture Modified') ? 'Modified' : 'Standard'
       },
       
       meal_order: {
-        delivery_day: callDetails.variables?.delivery_day || '',
-        delivery_date: callDetails.variables?.delivery_date || '',
-        meal_type: callDetails.variables?.meal_type || '',
-        meal_size: callDetails.variables?.meal_size || '',
-        items: callDetails.variables?.meal_items || []
+        delivery_day: parsedData?.delivery_day || 'Wednesday',
+        delivery_date: '',
+        meal_type: 'Chilled',
+        meal_size: parsedData?.meal_size || 'Regular',
+        items: [
+          parsedData?.main_meal ? { name: parsedData.main_meal, tags: [] } : null,
+          parsedData?.salad ? { name: parsedData.salad, tags: [] } : null,
+          parsedData?.juice ? { name: `${parsedData.juice} juice`, tags: [] } : null,
+          parsedData?.snack_pack ? { name: `Snack Pack ${parsedData.snack_pack}`, tags: [] } : null
+        ].filter(Boolean)
       },
       
       delivery: {
-        key_safe: callDetails.variables?.key_safe || 'No',
-        key_safe_code: callDetails.variables?.key_safe_code || '',
-        pets: callDetails.variables?.pets || 'No',
-        access: callDetails.variables?.access_point || '',
-        instructions: callDetails.variables?.delivery_instructions || ''
+        key_safe: parsedData?.key_safe_code ? 'Yes' : 'No',
+        key_safe_code: parsedData?.key_safe_code?.replace(/\s+/g, '') || '',
+        pets: parsedData?.pets || 'No',
+        accessPoint: 'Front door',
+        instructions: parsedData?.delivery_location ? `Leave at ${parsedData.delivery_location}` : ''
       },
       
       emergency_contact: {
-        name: callDetails.variables?.emergency_name || '',
-        relationship: callDetails.variables?.emergency_relationship || '',
-        phone: callDetails.variables?.emergency_phone || ''
+        name: parsedData?.emergency_name || '',
+        relationship: parsedData?.emergency_relationship || '',
+        phone: parsedData?.emergency_phone?.replace(/\s+/g, '') || ''
       },
       
-      medical_flags: callDetails.variables?.medical_flags || []
+      medical_flags: []
     };
     
+    console.log('📧 Generating email with parsed data...');
     const result = await sendIntakeEmail(callData);
-    console.log('✅ Files saved successfully');
+    console.log('✅ Email generated successfully!');
     
     res.json({ 
       success: true, 
-      message: 'Intake processed'
+      message: 'Intake processed from transcript'
     });
     
   } catch (error) {
-    console.error('Error processing webhook:', error);
+    console.error('❌ Error processing webhook:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
