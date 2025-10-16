@@ -9,17 +9,22 @@ router.post('/webhook', async (req, res) => {
     console.log('📦 Webhook payload:', JSON.stringify(req.body, null, 2));
     
     const callId = req.body.call_id;
+    const message = req.body.message;
+    
+    // Only process when call ends, not during conversation
+    if (!message || (!message.includes('call ended') && !message.includes('completed') && !message.includes('Call ended'))) {
+      console.log('⏭️  Skipping - not a call-end event');
+      return res.json({ success: true, message: 'Webhook received' });
+    }
     
     if (!callId) {
       throw new Error('No call_id in webhook');
     }
     
-    // Fetch full call details from Bland API
     console.log('🔍 Fetching call details from Bland...');
     const callDetails = await getCallDetails(callId);
     console.log('📋 Call details received:', JSON.stringify(callDetails, null, 2));
     
-    // Extract data from call transcript/variables
     const callData = {
       call_id: callId,
       duration: callDetails.call_length || '0m 0s',
