@@ -1,4 +1,8 @@
-require('dotenv').config();
+// Only load .env in development
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const webhookRouter = require('./routes/webhook');
@@ -21,6 +25,8 @@ app.get('/health', (req, res) => {
 app.listen(PORT, () => {
   console.log('🚀 Kvell Meals on Wheels Server Started');
   console.log(`📍 Running on port ${PORT}`);
-  console.log(`🔗 Webhook: http://localhost:${PORT}/api/webhook`);
-  console.log(`💚 Health: http://localhost:${PORT}/health`);
+  console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📧 SendGrid: ${process.env.SENDGRID_API_KEY ? 'YES' : 'NO'}`);
+  console.log(`📞 Bland: ${process.env.BLAND_API_KEY ? 'YES' : 'NO'}`);
+  console.log(`💌 Email To: ${process.env.EMAIL_TO || 'NOT SET'}`);
 });
