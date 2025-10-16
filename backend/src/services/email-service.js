@@ -1,12 +1,17 @@
+const sgMail = require('@sendgrid/mail');
 const fs = require('fs').promises;
 const path = require('path');
 const ejs = require('ejs');
+
+// Initialize SendGrid
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 async function sendIntakeEmail(callData) {
   try {
     console.log('📧 Generating intake email HTML...');
     
-    // Transform callData to match template expectations
     const templateData = {
       callInfo: {
         duration: callData.duration || '0m 0s',
@@ -14,7 +19,6 @@ async function sendIntakeEmail(callData) {
         confidence: callData.confidence || '95%',
         recordingUrl: callData.recording_url || '#'
       },
-      
       clientInfo: {
         fullName: callData.client_info?.full_name || 'Unknown',
         preferredName: callData.client_info?.preferred_name || '',
@@ -26,14 +30,12 @@ async function sendIntakeEmail(callData) {
         macNumber: callData.client_info?.mac_number || '',
         macVerified: !!callData.client_info?.mac_number
       },
-      
       dietary: {
         allergies: callData.dietary?.allergies || [],
         allergiesCritical: (callData.dietary?.allergies?.length || 0) > 0,
         conditions: callData.dietary?.conditions || [],
         texture: callData.dietary?.texture || 'Standard'
       },
-      
       mealOrder: {
         deliveryDay: callData.meal_order?.delivery_day || '',
         deliveryDate: callData.meal_order?.delivery_date || '',
@@ -42,7 +44,6 @@ async function sendIntakeEmail(callData) {
         aiRecommendation: callData.meal_order?.ai_recommendation || '',
         items: callData.meal_order?.items || []
       },
-      
       delivery: {
         keySafe: callData.delivery?.key_safe || 'No',
         keySafeCode: callData.delivery?.key_safe_code || '',
@@ -50,15 +51,12 @@ async function sendIntakeEmail(callData) {
         accessPoint: callData.delivery?.access || '',
         instructions: callData.delivery?.instructions || ''
       },
-      
       emergencyContact: {
         name: callData.emergency_contact?.name || '',
         relationship: callData.emergency_contact?.relationship || '',
         phone: callData.emergency_contact?.phone || ''
       },
-      
       medicalFlags: callData.medical_flags || [],
-      
       attachments: []
     };
     
@@ -66,6 +64,7 @@ async function sendIntakeEmail(callData) {
     const template = await fs.readFile(templatePath, 'utf-8');
     const html = ejs.render(template, templateData);
     
+    // Save to file as backup
     const outputDir = path.join(__dirname, '../../output');
     await fs.mkdir(outputDir, { recursive: true });
     
@@ -77,14 +76,32 @@ async function sendIntakeEmail(callData) {
     await fs.writeFile(filepath, html, 'utf-8');
     console.log(`✅ Email HTML saved to: ${filepath}`);
     
-    const jsonFilename = filename.replace('.html', '.json');
-    const jsonFilepath = path.join(outputDir, jsonFilename);
-    await fs.writeFile(jsonFilepath, JSON.stringify(callData, null, 2), 'utf-8');
-    console.log(`💾 JSON data saved to: ${jsonFilepath}`);
+    // Send via SendGrid
+    if (process.env.SENDGRID_API_KEY && process.env.EMAIL_TO) {
+      const msg = {
+        to: process.env.EMAIL_TO,
+        from: process.env.EMAIL_FROM || 'intake@kvell.ai',
+        subject: `New Client Intake - ${templateData.clientInfo.fullName}`,
+        html: html,
+        attachments: [
+          {
+            content: Buffer.from(JSON.stringify(callData, null, 2)).toString('base64'),
+            filename: `intake-${clientName}-${timestamp}.json`,
+            type: 'application/json',
+            disposition: 'attachment'
+          }
+        ]
+      };
+      
+      await sgMail.send(msg);
+      console.log(`📧 Email sent to: ${process.env.EMAIL_TO}`);
+    } else {
+      console.log('⚠️  SendGrid not configured - email not sent');
+    }
     
-    return { success: true, filepath, jsonFilepath };
+    return { success: true, filepath };
   } catch (error) {
-    console.error('❌ Error generating email:', error);
+    console.error('❌ Error generating/sending email:', error);
     throw error;
   }
 }
