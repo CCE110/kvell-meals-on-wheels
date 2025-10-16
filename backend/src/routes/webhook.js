@@ -1,65 +1,72 @@
 const express = require('express');
 const router = express.Router();
 const { sendIntakeEmail } = require('../services/email-service');
+const { getCallDetails } = require('../services/bland-service');
 
 router.post('/webhook', async (req, res) => {
   try {
     console.log('📞 Webhook received from Bland AI');
-    console.log('📦 Raw webhook data:', JSON.stringify(req.body, null, 2));
+    console.log('📦 Webhook payload:', JSON.stringify(req.body, null, 2));
     
-    // Use ACTUAL data from Bland AI webhook
-    const blandData = req.body;
+    const callId = req.body.call_id;
     
-    // Transform Bland AI data to our structure
+    if (!callId) {
+      throw new Error('No call_id in webhook');
+    }
+    
+    // Fetch full call details from Bland API
+    console.log('🔍 Fetching call details from Bland...');
+    const callDetails = await getCallDetails(callId);
+    console.log('📋 Call details received:', JSON.stringify(callDetails, null, 2));
+    
+    // Extract data from call transcript/variables
     const callData = {
-      call_id: blandData.call_id || 'unknown',
-      duration: blandData.call_length || '0m 0s',
+      call_id: callId,
+      duration: callDetails.call_length || '0m 0s',
       timestamp: new Date().toLocaleString('en-AU', { timeZone: 'Australia/Brisbane' }),
       confidence: '95%',
-      recording_url: blandData.recording_url || '#',
+      recording_url: callDetails.recording_url || '#',
       
-      // Extract from Bland's data structure
       client_info: {
-        full_name: blandData.variables?.full_name || blandData.transcript?.full_name || 'Unknown',
-        preferred_name: blandData.variables?.preferred_name || '',
-        dob: blandData.variables?.dob || '',
-        age: blandData.variables?.age || 0,
-        address: blandData.variables?.address || '',
-        phone: blandData.variables?.phone || '',
-        email: blandData.variables?.email || '',
-        mac_number: blandData.variables?.mac_number || ''
+        full_name: callDetails.variables?.full_name || 'Unknown',
+        preferred_name: callDetails.variables?.preferred_name || '',
+        dob: callDetails.variables?.dob || '',
+        age: callDetails.variables?.age || 0,
+        address: callDetails.variables?.address || '',
+        phone: callDetails.variables?.phone || '',
+        email: callDetails.variables?.email || '',
+        mac_number: callDetails.variables?.mac_number || ''
       },
       
       dietary: {
-        allergies: blandData.variables?.allergies || [],
-        conditions: blandData.variables?.conditions || [],
-        texture: blandData.variables?.texture || 'Standard'
+        allergies: callDetails.variables?.allergies || [],
+        conditions: callDetails.variables?.conditions || [],
+        texture: callDetails.variables?.texture || 'Standard'
       },
       
       meal_order: {
-        delivery_day: blandData.variables?.delivery_day || '',
-        delivery_date: blandData.variables?.delivery_date || '',
-        meal_type: blandData.variables?.meal_type || '',
-        meal_size: blandData.variables?.meal_size || '',
-        ai_recommendation: blandData.variables?.ai_recommendation || '',
-        items: blandData.variables?.meal_items || []
+        delivery_day: callDetails.variables?.delivery_day || '',
+        delivery_date: callDetails.variables?.delivery_date || '',
+        meal_type: callDetails.variables?.meal_type || '',
+        meal_size: callDetails.variables?.meal_size || '',
+        items: callDetails.variables?.meal_items || []
       },
       
       delivery: {
-        key_safe: blandData.variables?.key_safe || 'No',
-        key_safe_code: blandData.variables?.key_safe_code || '',
-        pets: blandData.variables?.pets || 'No',
-        access: blandData.variables?.access_point || '',
-        instructions: blandData.variables?.delivery_instructions || ''
+        key_safe: callDetails.variables?.key_safe || 'No',
+        key_safe_code: callDetails.variables?.key_safe_code || '',
+        pets: callDetails.variables?.pets || 'No',
+        access: callDetails.variables?.access_point || '',
+        instructions: callDetails.variables?.delivery_instructions || ''
       },
       
       emergency_contact: {
-        name: blandData.variables?.emergency_name || '',
-        relationship: blandData.variables?.emergency_relationship || '',
-        phone: blandData.variables?.emergency_phone || ''
+        name: callDetails.variables?.emergency_name || '',
+        relationship: callDetails.variables?.emergency_relationship || '',
+        phone: callDetails.variables?.emergency_phone || ''
       },
       
-      medical_flags: blandData.variables?.medical_flags || []
+      medical_flags: callDetails.variables?.medical_flags || []
     };
     
     const result = await sendIntakeEmail(callData);
@@ -67,7 +74,7 @@ router.post('/webhook', async (req, res) => {
     
     res.json({ 
       success: true, 
-      message: 'Intake processed and saved to file'
+      message: 'Intake processed'
     });
     
   } catch (error) {
