@@ -5,59 +5,61 @@ const { sendIntakeEmail } = require('../services/email-service');
 router.post('/webhook', async (req, res) => {
   try {
     console.log('📞 Webhook received from Bland AI');
+    console.log('📦 Raw webhook data:', JSON.stringify(req.body, null, 2));
     
+    // Use ACTUAL data from Bland AI webhook
+    const blandData = req.body;
+    
+    // Transform Bland AI data to our structure
     const callData = {
-      call_id: req.body.call_id || 'unknown',
-      duration: req.body.call_length || '0m 0s',
+      call_id: blandData.call_id || 'unknown',
+      duration: blandData.call_length || '0m 0s',
       timestamp: new Date().toLocaleString('en-AU', { timeZone: 'Australia/Brisbane' }),
       confidence: '95%',
+      recording_url: blandData.recording_url || '#',
+      
+      // Extract from Bland's data structure
       client_info: {
-        full_name: 'Margaret Thompson',
-        preferred_name: 'Margaret',
-        dob: '12 March 1948',
-        age: 77,
-        address: '45 Oak Street, Petrie, QLD 4502',
-        phone: '07 3456 7890',
-        mac_number: 'AC45678901'
+        full_name: blandData.variables?.full_name || blandData.transcript?.full_name || 'Unknown',
+        preferred_name: blandData.variables?.preferred_name || '',
+        dob: blandData.variables?.dob || '',
+        age: blandData.variables?.age || 0,
+        address: blandData.variables?.address || '',
+        phone: blandData.variables?.phone || '',
+        email: blandData.variables?.email || '',
+        mac_number: blandData.variables?.mac_number || ''
       },
+      
       dietary: {
-        allergies: ['Shellfish'],
-        conditions: ['Diabetic (Type 2)', 'Low Fat'],
-        texture: 'Standard'
+        allergies: blandData.variables?.allergies || [],
+        conditions: blandData.variables?.conditions || [],
+        texture: blandData.variables?.texture || 'Standard'
       },
+      
       meal_order: {
-        delivery_day: 'Wednesday',
-        delivery_date: '15 October 2025',
-        meal_type: 'Chilled',
-        meal_size: 'Small',
-        items: [
-          { name: 'Minted Lamb Casserole', description: 'with mashed potato, carrots & beans', tags: ['GF', 'LF', 'Dia'] },
-          { name: 'French Onion Soup', description: '', tags: ['GF', 'LF', 'Dia'] },
-          { name: 'Lemon Cheesecake', description: '', tags: [] },
-          { name: 'Roast Beef, Cheese & Tomato chutney', description: 'on Wholemeal bread', tags: [] },
-          { name: '1L Apple Juice', description: '', tags: [] },
-          { name: 'Snack Pack A', description: 'Fruit Cup, Oat Bar, Fruit Yoghurt, Fruit Bar', tags: [] }
-        ]
+        delivery_day: blandData.variables?.delivery_day || '',
+        delivery_date: blandData.variables?.delivery_date || '',
+        meal_type: blandData.variables?.meal_type || '',
+        meal_size: blandData.variables?.meal_size || '',
+        ai_recommendation: blandData.variables?.ai_recommendation || '',
+        items: blandData.variables?.meal_items || []
       },
+      
       delivery: {
-        key_safe: 'Yes - Code: 1234',
-        pets: 'No',
-        access: 'Front door',
-        instructions: 'Leave meals in esky by front door'
+        key_safe: blandData.variables?.key_safe || 'No',
+        key_safe_code: blandData.variables?.key_safe_code || '',
+        pets: blandData.variables?.pets || 'No',
+        access: blandData.variables?.access_point || '',
+        instructions: blandData.variables?.delivery_instructions || ''
       },
+      
       emergency_contact: {
-        name: 'Sarah Thompson',
-        relationship: 'Daughter',
-        phone: '0412 345 678'
+        name: blandData.variables?.emergency_name || '',
+        relationship: blandData.variables?.emergency_relationship || '',
+        phone: blandData.variables?.emergency_phone || ''
       },
-      medical_flags: [
-        {
-          type: 'Cognitive Concern',
-          description: 'Client mentioned forgetting things lately',
-          severity: 'medium',
-          action: 'RN wellness check required before first delivery'
-        }
-      ]
+      
+      medical_flags: blandData.variables?.medical_flags || []
     };
     
     const result = await sendIntakeEmail(callData);
