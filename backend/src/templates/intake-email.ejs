@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
+    .container { max-width: 800px; margin: 20px auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+    .header h1 { margin: 0; font-size: 28px; }
+    .header p { margin: 10px 0 0; opacity: 0.9; }
+    .content { padding: 30px; }
+    .section { margin-bottom: 30px; }
+    .section-title { font-size: 20px; color: #667eea; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #667eea; }
+    .alert-box { padding: 15px; border-radius: 6px; margin: 15px 0; }
+    .alert-critical { background: #fee; border-left: 4px solid #c00; }
+    .alert-warning { background: #fffbe6; border-left: 4px solid #faad14; }
+    .alert-info { background: #e6f7ff; border-left: 4px solid #1890ff; }
+    .info-grid { display: grid; grid-template-columns: 140px 1fr; gap: 12px; }
+    .info-label { font-weight: 600; color: #666; }
+    .info-value { color: #333; }
+    .meal-item { padding: 10px; background: #f9f9f9; border-radius: 4px; margin: 8px 0; }
+    .tag { display: inline-block; padding: 2px 8px; background: #667eea; color: white; border-radius: 3px; font-size: 11px; margin-left: 8px; }
+    .checkmark { color: #52c41a; margin-right: 8px; }
+    .time-savings { background: linear-gradient(135deg, #52c41a 0%, #73d13d 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; }
+    .time-savings h3 { margin: 0 0 15px; font-size: 24px; }
+    .time-comparison { display: flex; justify-content: space-around; margin-top: 15px; }
+    .time-box { text-align: center; }
+    .time-box .number { font-size: 32px; font-weight: bold; }
+    .time-box .label { font-size: 14px; opacity: 0.9; }
+    .action-buttons { display: flex; gap: 15px; margin: 25px 0; }
+    .button { display: inline-block; padding: 12px 24px; background: #667eea; color: white; text-decoration: none; border-radius: 6px; text-align: center; flex: 1; }
+    .button:hover { background: #5568d3; }
+    .footer { background: #f9f9f9; padding: 20px; text-align: center; color: #666; font-size: 14px; border-top: 1px solid #e8e8e8; }
+    .phase2-teaser { background: #fff7e6; border: 2px dashed #faad14; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; }
+    .phase2-teaser h4 { margin: 0 0 10px; color: #d48806; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>New Client Intake - <%= clientInfo.fullName %></h1>
+      <p>AI-Powered Phone Assessment Complete</p>
+    </div>
+
+    <div class="content">
+      <div class="section">
+        <div class="section-title">📞 Call Information</div>
+        <div class="info-grid">
+          <div class="info-label">Duration:</div>
+          <div class="info-value"><%= callInfo.duration %></div>
+          <div class="info-label">Timestamp:</div>
+          <div class="info-value"><%= callInfo.timestamp %></div>
+          <div class="info-label">Confidence:</div>
+          <div class="info-value"><%= callInfo.confidence %>%</div>
+        </div>
+        <div class="action-buttons">
+          <a href="<%= callInfo.recordingUrl %>" class="button">🎧 Listen to Recording</a>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">👤 Personal Information</div>
+        <div class="info-grid">
+          <div class="info-label">Full Name:</div>
+          <div class="info-value"><%= clientInfo.fullName %></div>
+          <div class="info-label">Preferred Name:</div>
+          <div class="info-value"><%= clientInfo.preferredName %></div>
+          <div class="info-label">Date of Birth:</div>
+          <div class="info-value"><%= clientInfo.dob %> (Age: <%= clientInfo.age %>)</div>
+          <div class="info-label">Address:</div>
+          <div class="info-value"><%= clientInfo.address %></div>
+          <div class="info-label">Phone:</div>
+          <div class="info-value"><%= clientInfo.phone %></div>
+          <% if (clientInfo.email) { %>
+          <div class="info-label">Email:</div>
+          <div class="info-value"><%= clientInfo.email %></div>
+          <% } %>
+          <div class="info-label">MAC Number:</div>
+          <div class="info-value"><%= clientInfo.macNumber %> ✓</div>
+        </div>
+      </div>
+
+      <% if (dietary.allergies && dietary.allergies.length > 0) { %>
+      <div class="alert-box alert-critical">
+        <strong>⚠️ CRITICAL ALLERGIES:</strong> <%= dietary.allergies.join(', ') %>
+      </div>
+      <% } %>
+
+      <div class="section">
+        <div class="section-title">🥗 Dietary Requirements</div>
+        <div class="info-grid">
+          <% if (dietary.conditions && dietary.conditions.length > 0) { %>
+          <div class="info-label">Conditions:</div>
+          <div class="info-value"><%= dietary.conditions.join(', ') %></div>
+          <% } %>
+          <div class="info-label">Texture:</div>
+          <div class="info-value"><%= dietary.texture || 'Standard' %></div>
+          <% if (dietary.notes) { %>
+          <div class="info-label">Notes:</div>
+          <div class="info-value"><%= dietary.notes %></div>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🍽️ Meal Order</div>
+        <div class="alert-box alert-info">
+          <strong>Delivery Day:</strong> <%= mealOrder.deliveryDay %> (<%= mealOrder.date %>)<br>
+          <strong>Meal Type:</strong> Chilled | <strong>Size:</strong> <%= mealOrder.size %>
+          <% if (mealOrder.aiRecommendation) { %>
+          <br><em>AI Recommendation: <%= mealOrder.aiRecommendation %></em>
+          <% } %>
+        </div>
+        
+        <% mealOrder.items.forEach(item => { %>
+        <div class="meal-item">
+          <span class="checkmark">✓</span>
+          <strong><%= item.name %></strong>
+          <% if (item.description) { %> - <%= item.description %><% } %>
+          <% if (item.tags) { item.tags.forEach(tag => { %>
+            <span class="tag"><%= tag %></span>
+          <% }); } %>
+        </div>
+        <% }); %>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🚪 Access & Delivery</div>
+        <div class="info-grid">
+          <% if (delivery.keySafe) { %>
+          <div class="info-label">Key Safe:</div>
+          <div class="info-value">Yes - Code: <%= delivery.keySafeCode %></div>
+          <% } %>
+          <div class="info-label">Pets:</div>
+          <div class="info-value"><%= delivery.pets || 'None' %></div>
+          <div class="info-label">Access:</div>
+          <div class="info-value"><%= delivery.accessPoint %></div>
+          <% if (delivery.instructions) { %>
+          <div class="info-label">Instructions:</div>
+          <div class="info-value">"<%= delivery.instructions %>"</div>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🆘 Emergency Contact</div>
+        <div class="info-grid">
+          <div class="info-label">Name:</div>
+          <div class="info-value"><%= emergencyContact.name %></div>
+          <div class="info-label">Relationship:</div>
+          <div class="info-value"><%= emergencyContact.relationship %></div>
+          <div class="info-label">Phone:</div>
+          <div class="info-value"><%= emergencyContact.phone %></div>
+        </div>
+      </div>
+
+      <% if (medicalFlags && medicalFlags.length > 0) { %>
+      <div class="section">
+        <div class="section-title">⚕️ Medical Flags</div>
+        <% medicalFlags.forEach(flag => { %>
+        <div class="alert-box alert-warning">
+          <strong><%= flag.type %>:</strong> <%= flag.description %><br>
+          <em>Action Required: <%= flag.action %></em>
+        </div>
+        <% }); %>
+      </div>
+      <% } %>
+
+      <div class="time-savings">
+        <h3>⏱️ Time Saved with AI</h3>
+        <div class="time-comparison">
+          <div class="time-box">
+            <div class="number">20-26</div>
+            <div class="label">Minutes (Traditional)</div>
+          </div>
+          <div class="time-box">
+            <div class="number">→</div>
+          </div>
+          <div class="time-box">
+            <div class="number">13-15</div>
+            <div class="label">Minutes (With AI)</div>
+          </div>
+          <div class="time-box">
+            <div class="number">=</div>
+          </div>
+          <div class="time-box">
+            <div class="number">7-12</div>
+            <div class="label">Minutes Saved!</div>
+          </div>
+        </div>
+        <p style="margin-top: 15px; font-size: 16px;">
+          <strong>Monthly Impact (80-100 clients):</strong><br>
+          9-12 hours saved = $329-438/month
+        </p>
+      </div>
+
+      <div class="phase2-teaser">
+        <h4>🚀 With Polixen Auto-Import (Phase 2)</h4>
+        <p style="margin: 0;">Total time: <strong>5 minutes</strong> instead of 20 minutes<br>
+        Save an additional 8-10 minutes per client!<br>
+        <strong>Monthly savings: $609-756</strong></p>
+      </div>
+
+      <div class="section">
+        <div class="section-title">✅ Next Steps</div>
+        <ul style="line-height: 2;">
+          <li>Review all information above for accuracy</li>
+          <li>Enter client data into Polixen (5-8 minutes)</li>
+          <li>Call client to confirm details</li>
+          <li>Set up payment and billing</li>
+          <li>Add to delivery route</li>
+          <% if (dietary.allergies && dietary.allergies.length > 0) { %>
+          <li><strong style="color: #c00;">⚠️ Print allergy warning labels</strong></li>
+          <% } %>
+        </ul>
+      </div>
+
+      <div class="action-buttons">
+        <a href="<%= attachments.jsonUrl %>" class="button">📄 Download JSON Data</a>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p><strong>Powered by Kvell AI</strong> | Built for Meals on Wheels Moreton Bay Region</p>
+      <p>Questions? Contact: rob@kvell.net</p>
+    </div>
+  </div>
+</body>
+</html>
