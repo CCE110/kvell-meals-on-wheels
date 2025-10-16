@@ -9,13 +9,21 @@ router.post('/webhook', async (req, res) => {
     console.log('📦 Webhook payload:', JSON.stringify(req.body, null, 2));
     
     const callId = req.body.call_id;
-    const message = req.body.message;
+    const message = req.body.message || '';
     
-    // Only process when call ends, not during conversation
-    if (!message || (!message.includes('call ended') && !message.includes('completed') && !message.includes('Call ended'))) {
+    // Check if this is a call-end event
+    const isCallEnd = message.includes('Ending call:') || 
+                      message.includes('[FINISH]') ||
+                      message.includes('call ended') || 
+                      message.includes('Call ended') ||
+                      message.includes('completed');
+    
+    if (!isCallEnd) {
       console.log('⏭️  Skipping - not a call-end event');
       return res.json({ success: true, message: 'Webhook received' });
     }
+    
+    console.log('🎉 CALL ENDED! Processing...');
     
     if (!callId) {
       throw new Error('No call_id in webhook');
