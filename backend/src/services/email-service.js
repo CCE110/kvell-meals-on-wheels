@@ -7,74 +7,100 @@ if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
+// Helper function to safely get nested values with multiple fallback paths
+function safeGet(obj, ...paths) {
+  for (const path of paths) {
+    const keys = path.split('.');
+    let value = obj;
+    let found = true;
+    
+    for (const key of keys) {
+      if (value && typeof value === 'object' && key in value) {
+        value = value[key];
+      } else {
+        found = false;
+        break;
+      }
+    }
+    
+    if (found && value !== undefined && value !== null) {
+      return value;
+    }
+  }
+  return paths[paths.length - 1]; // Return last path as default if it's a string
+}
+
 async function sendIntakeEmail(callData) {
   try {
     console.log('📧 Generating intake email HTML...');
+    console.log('📊 Received data structure:', JSON.stringify(callData, null, 2));
     
-    // Map flat parser data to template structure
+    // ROBUST DATA MAPPING - handles ANY structure
     const templateData = {
       callInfo: {
-        duration: callData.call_duration || 0,
-        timestamp: callData.timestamp || new Date().toISOString(),
-        confidence: 95,
-        recordingUrl: callData.recording_url || null
+        duration: safeGet(callData, 'call_duration', 'callInfo.duration', 'call.duration', 0),
+        timestamp: safeGet(callData, 'timestamp', 'callInfo.timestamp', 'call.timestamp', new Date().toISOString()),
+        confidence: safeGet(callData, 'confidence', 'callInfo.confidence', 'call.confidence', 95),
+        recordingUrl: safeGet(callData, 'recording_url', 'callInfo.recordingUrl', 'call.recordingUrl', '#')
       },
       clientInfo: {
-        fullName: callData.full_name || 'Unknown',
-        preferredName: callData.preferred_name || '',
-        dob: callData.dob || '',
-        age: callData.age || 0,
-        address: callData.address || '',
-        phone: callData.phone || '',
-        email: callData.email || 'N/A',
-        macNumber: callData.mac_number || ''
+        fullName: safeGet(callData, 'full_name', 'clientInfo.fullName', 'client.fullName', 'Unknown'),
+        preferredName: safeGet(callData, 'preferred_name', 'clientInfo.preferredName', 'client.preferredName', ''),
+        dob: safeGet(callData, 'dob', 'clientInfo.dob', 'client.dob', ''),
+        age: safeGet(callData, 'age', 'clientInfo.age', 'client.age', 0),
+        address: safeGet(callData, 'address', 'clientInfo.address', 'client.address', ''),
+        phone: safeGet(callData, 'phone', 'clientInfo.phone', 'client.phone', ''),
+        email: safeGet(callData, 'email', 'clientInfo.email', 'client.email', 'N/A'),
+        macNumber: safeGet(callData, 'mac_number', 'clientInfo.macNumber', 'client.macNumber', '')
       },
-      dietaryRequirements: {
-        texture: 'Standard',
-        allergies: callData.allergies || [],
-        needs: callData.dietary_needs || []
+      dietary: {
+        texture: safeGet(callData, 'texture', 'dietary.texture', 'dietaryRequirements.texture', 'Standard'),
+        allergies: safeGet(callData, 'allergies', 'dietary.allergies', 'dietaryRequirements.allergies', []),
+        conditions: safeGet(callData, 'dietary_needs', 'dietary.conditions', 'dietaryRequirements.needs', []),
+        needs: safeGet(callData, 'dietary_needs', 'dietary.needs', 'dietaryRequirements.needs', []),
+        notes: safeGet(callData, 'dietary_notes', 'dietary.notes', '')
       },
       mealOrder: {
-        deliveryDay: callData.delivery_day || '',
-        deliveryDate: '',
-        mealType: 'Chilled',
-        mealSize: callData.meal_size || '',
-        aiRecommendation: callData.main_meal || '',
-        items: []
+        deliveryDay: safeGet(callData, 'delivery_day', 'mealOrder.deliveryDay', 'meal.deliveryDay', ''),
+        deliveryDate: safeGet(callData, 'delivery_date', 'mealOrder.deliveryDate', 'meal.deliveryDate', ''),
+        mealType: safeGet(callData, 'meal_type', 'mealOrder.mealType', 'meal.mealType', 'Chilled'),
+        mealSize: safeGet(callData, 'meal_size', 'mealOrder.mealSize', 'meal.mealSize', ''),
+        aiRecommendation: safeGet(callData, 'main_meal', 'mealOrder.aiRecommendation', 'meal.mainMeal', ''),
+        items: safeGet(callData, 'meal_items', 'mealOrder.items', 'meal.items', [])
       },
       delivery: {
-        keySafe: callData.key_safe_code ? 'Yes' : 'No',
-        keySafeCode: callData.key_safe_code || '',
-        pets: callData.pets || 'No',
-        accessPoint: callData.delivery_location || '',
-        instructions: ''
+        keySafe: safeGet(callData, 'key_safe_code', 'delivery.keySafeCode') ? 'Yes' : 'No',
+        keySafeCode: safeGet(callData, 'key_safe_code', 'delivery.keySafeCode', ''),
+        pets: safeGet(callData, 'pets', 'delivery.pets', 'No'),
+        access: safeGet(callData, 'delivery_location', 'delivery.access', 'delivery.accessPoint', ''),
+        instructions: safeGet(callData, 'delivery_instructions', 'delivery.instructions', '')
       },
       emergencyContact: {
-        name: callData.emergency_name || '',
-        relationship: callData.emergency_relationship || '',
-        phone: callData.emergency_phone || ''
+        name: safeGet(callData, 'emergency_name', 'emergencyContact.name', 'emergency.name', ''),
+        relationship: safeGet(callData, 'emergency_relationship', 'emergencyContact.relationship', 'emergency.relationship', ''),
+        phone: safeGet(callData, 'emergency_phone', 'emergencyContact.phone', 'emergency.phone', '')
       },
-      medicalFlags: [],
-      attachments: []
+      medicalFlags: safeGet(callData, 'medical_flags', 'medicalFlags', []),
+      attachments: safeGet(callData, 'attachments', [])
     };
+    
+    console.log('📧 Template data prepared:', JSON.stringify(templateData, null, 2));
     
     const templatePath = path.join(__dirname, '../templates/intake-email.ejs');
     const template = await fs.readFile(templatePath, 'utf-8');
     const html = ejs.render(template, templateData);
     
-    // Save to file as backup
     const outputDir = path.join(__dirname, '../../output');
     await fs.mkdir(outputDir, { recursive: true });
     
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const clientName = (callData.full_name || 'Client').replace(/\s+/g, '_');
+    const clientName = (templateData.clientInfo.fullName || 'Client').replace(/\s+/g, '_');
     const filename = `intake-${clientName}-${timestamp}.html`;
     const filepath = path.join(outputDir, filename);
     
     await fs.writeFile(filepath, html, 'utf-8');
     console.log(`✅ Email HTML saved to: ${filepath}`);
     
-    // Send via SendGrid
     if (process.env.SENDGRID_API_KEY && process.env.EMAIL_TO) {
       const msg = {
         to: process.env.EMAIL_TO,
