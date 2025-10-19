@@ -24,11 +24,16 @@ function parseTranscript(transcript) {
   const dobMatch = confirmation.match(/born\s+(?:in\s+|on\s+)?([A-Za-z]+\s+(?:the\s+)?[\w\s,\-]+(?:nineteen|twenty)\s+[\w\s\-]+)/i);
   const dob = dobMatch ? dobMatch[1].trim() : '';
   
-  // Extract phone - handle dashes, commas, spaces, "zero four five", etc.
-  const phoneMatch = confirmation.match(/[Pp]hone\s+(?:number\s+)?(?:is\s+)?([zero\s\d\-,\s]+(?:zero|one|two|three|four|five|six|seven|eight|nine)[\s\d\-,]*)/i);
+  // Extract phone - COMPLETELY REWRITTEN to be greedy and get ALL digits
+  const phoneMatch = confirmation.match(/[Pp]hone\s+(?:number\s+)?(?:is\s+)?((?:zero|one|two|three|four|five|six|seven|eight|nine|\d)[,\s\-]*)+/i);
   let phone = '';
   if (phoneMatch) {
-    phone = phoneMatch[1]
+    // Get the entire matched phone string
+    const phoneStr = phoneMatch[1];
+    console.log('📞 Raw phone match:', phoneStr);
+    
+    // Convert all word numbers to digits and strip everything except digits
+    phone = phoneStr
       .replace(/zero/gi, '0')
       .replace(/one/gi, '1')
       .replace(/two/gi, '2')
@@ -39,8 +44,10 @@ function parseTranscript(transcript) {
       .replace(/seven/gi, '7')
       .replace(/eight/gi, '8')
       .replace(/nine/gi, '9')
-      .replace(/[,\s\-]+/g, '')
+      .replace(/[^\d]/g, '') // Remove everything that's not a digit
       .trim();
+    
+    console.log('📞 Converted phone:', phone);
   }
   
   // Extract delivery day
@@ -71,14 +78,28 @@ function parseTranscript(transcript) {
   const keySafeMatch = confirmation.match(/(?:code|key safe code|key code)(?:\s+is)?\s+(\d+)/i);
   const keySafeCode = keySafeMatch ? keySafeMatch[1] : '';
   
-  // Extract pets - handle "There is a", "There's a", "we have a", etc.
-  const petsMatch = confirmation.match(/(?:There(?:'s|\s+is)\s+(?:a\s+)?|pet(?:s)?\s+(?:on\s+site)?[,:\s]+(?:a\s+)?)(.*?(?:dog|cat|Rottweiler|terrier|pet)[^.]*)/i);
+  // Extract pets - REWRITTEN to be more greedy
   let pets = '';
-  if (petsMatch) {
-    pets = petsMatch[1]
-      .replace(/^(a|an|the)\s+/i, '')
-      .replace(/\s+on\s+site/i, '')
-      .trim();
+  
+  // Try multiple pet patterns
+  const petPatterns = [
+    /(?:There(?:'s|\s+is)\s+(?:a\s+)?)(.*?(?:dog|cat|rottweiler|terrier|pet).*?)(?:\s+on\s+site)?[.,]/i,
+    /(?:pet(?:s)?\s+(?:on\s+site)?[,:\s]+(?:a\s+)?)(.*?(?:dog|cat|rottweiler|terrier|pet)[^.,]*)/i,
+    /(?:There(?:'s|\s+is)\s+(?:a\s+)?)(large.*?(?:dog|cat|rottweiler|terrier))/i
+  ];
+  
+  for (const pattern of petPatterns) {
+    const match = confirmation.match(pattern);
+    if (match && match[1]) {
+      pets = match[1]
+        .replace(/^(a|an|the)\s+/i, '')
+        .replace(/\s+on\s+site/i, '')
+        .replace(/\s*[,.].*$/, '') // Remove everything after comma or period
+        .trim();
+      
+      console.log('🐕 Pet match found:', pets);
+      break;
+    }
   }
   
   // Extract allergies - handle "you have a nut allergy", "just nuts", "no allergies"
