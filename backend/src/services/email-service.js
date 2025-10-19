@@ -8,8 +8,16 @@ if (process.env.SENDGRID_API_KEY) {
 }
 
 // Helper function to safely get nested values with multiple fallback paths
-function safeGet(obj, ...paths) {
+function safeGet(obj, ...args) {
+  // Last argument might be a default value (not a path)
+  const defaultValue = args[args.length - 1];
+  const paths = typeof defaultValue === 'string' && defaultValue.includes('.') 
+    ? args 
+    : args.slice(0, -1);
+  
   for (const path of paths) {
+    if (typeof path !== 'string') continue;
+    
     const keys = path.split('.');
     let value = obj;
     let found = true;
@@ -27,7 +35,9 @@ function safeGet(obj, ...paths) {
       return value;
     }
   }
-  return paths[paths.length - 1]; // Return last path as default if it's a string
+  
+  // Return default value
+  return typeof defaultValue === 'string' && defaultValue.includes('.') ? '' : defaultValue;
 }
 
 async function sendIntakeEmail(callData) {
@@ -69,7 +79,7 @@ async function sendIntakeEmail(callData) {
         items: safeGet(callData, 'meal_items', 'mealOrder.items', 'meal.items', [])
       },
       delivery: {
-        keySafe: safeGet(callData, 'key_safe_code', 'delivery.keySafeCode') ? 'Yes' : 'No',
+        keySafe: safeGet(callData, 'key_safe_code', 'delivery.keySafeCode', '') ? 'Yes' : 'No',
         keySafeCode: safeGet(callData, 'key_safe_code', 'delivery.keySafeCode', ''),
         pets: safeGet(callData, 'pets', 'delivery.pets', 'No'),
         access: safeGet(callData, 'delivery_location', 'delivery.access', 'delivery.accessPoint', ''),
