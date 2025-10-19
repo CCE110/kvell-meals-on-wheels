@@ -45,7 +45,7 @@ function parseTranscript(transcript) {
     full_name: fullName || '',
     preferred_name: preferredName || fullName || '',
     dob: dob,
-    address: '', // Not in short version
+    address: '',
     phone: phone,
     email: '',
     mac_number: '',
