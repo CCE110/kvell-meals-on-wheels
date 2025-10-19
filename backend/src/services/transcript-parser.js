@@ -24,8 +24,8 @@ function parseTranscript(transcript) {
   const dobMatch = confirmation.match(/born\s+(?:in\s+|on\s+)?([A-Za-z]+\s+(?:the\s+)?[\w\s,\-]+(?:nineteen|twenty)\s+[\w\s\-]+)/i);
   const dob = dobMatch ? dobMatch[1].trim() : '';
   
-  // Extract phone - COMPLETELY REWRITTEN to be greedy and get ALL digits
-  const phoneMatch = confirmation.match(/[Pp]hone\s+(?:number\s+)?(?:is\s+)?((?:zero|one|two|three|four|five|six|seven|eight|nine|\d)[,\s\-]*)+/i);
+  // Extract phone - FIXED to grab everything between "Phone number is" and the next sentence
+  const phoneMatch = confirmation.match(/[Pp]hone\s+(?:number\s+)?(?:is\s+)?([^.]+?)\.(?:\s+You)/i);
   let phone = '';
   if (phoneMatch) {
     // Get the entire matched phone string
@@ -78,27 +78,31 @@ function parseTranscript(transcript) {
   const keySafeMatch = confirmation.match(/(?:code|key safe code|key code)(?:\s+is)?\s+(\d+)/i);
   const keySafeCode = keySafeMatch ? keySafeMatch[1] : '';
   
-  // Extract pets - REWRITTEN to be more greedy
+  // Extract pets - check for "no pets" first
   let pets = '';
   
-  // Try multiple pet patterns
-  const petPatterns = [
-    /(?:There(?:'s|\s+is)\s+(?:a\s+)?)(.*?(?:dog|cat|rottweiler|terrier|pet).*?)(?:\s+on\s+site)?[.,]/i,
-    /(?:pet(?:s)?\s+(?:on\s+site)?[,:\s]+(?:a\s+)?)(.*?(?:dog|cat|rottweiler|terrier|pet)[^.,]*)/i,
-    /(?:There(?:'s|\s+is)\s+(?:a\s+)?)(large.*?(?:dog|cat|rottweiler|terrier))/i
-  ];
+  const noPetsMatch = confirmation.match(/No pets|no pet/i);
   
-  for (const pattern of petPatterns) {
-    const match = confirmation.match(pattern);
-    if (match && match[1]) {
-      pets = match[1]
-        .replace(/^(a|an|the)\s+/i, '')
-        .replace(/\s+on\s+site/i, '')
-        .replace(/\s*[,.].*$/, '') // Remove everything after comma or period
-        .trim();
-      
-      console.log('🐕 Pet match found:', pets);
-      break;
+  if (!noPetsMatch) {
+    // Try multiple pet patterns only if "no pets" wasn't found
+    const petPatterns = [
+      /(?:There(?:'s|\s+is)\s+(?:a\s+)?)(.*?(?:dog|cat|rottweiler|terrier|pet).*?)(?:\s+on\s+site)?[.,]/i,
+      /(?:pet(?:s)?\s+(?:on\s+site)?[,:\s]+(?:a\s+)?)(.*?(?:dog|cat|rottweiler|terrier|pet)[^.,]*)/i,
+      /(?:There(?:'s|\s+is)\s+(?:a\s+)?)(large.*?(?:dog|cat|rottweiler|terrier))/i
+    ];
+    
+    for (const pattern of petPatterns) {
+      const match = confirmation.match(pattern);
+      if (match && match[1]) {
+        pets = match[1]
+          .replace(/^(a|an|the)\s+/i, '')
+          .replace(/\s+on\s+site/i, '')
+          .replace(/\s*[,.].*$/, '') // Remove everything after comma or period
+          .trim();
+        
+        console.log('🐕 Pet match found:', pets);
+        break;
+      }
     }
   }
   
