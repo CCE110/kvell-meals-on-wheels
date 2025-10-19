@@ -1,9 +1,8 @@
 const sgMail = require('@sendgrid/mail');
+const ejs = require('ejs');
 const fs = require('fs').promises;
 const path = require('path');
-const ejs = require('ejs');
 
-// Initialize SendGrid
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
@@ -12,51 +11,50 @@ async function sendIntakeEmail(callData) {
   try {
     console.log('📧 Generating intake email HTML...');
     
+    // Map flat parser data to template structure
     const templateData = {
       callInfo: {
-        duration: callData.duration || '0m 0s',
-        timestamp: callData.timestamp || new Date().toLocaleString('en-AU'),
-        confidence: callData.confidence || '95%',
-        recordingUrl: callData.recording_url || '#'
+        duration: callData.call_duration || 0,
+        timestamp: callData.timestamp || new Date().toISOString(),
+        confidence: 95,
+        recordingUrl: callData.recording_url || null
       },
       clientInfo: {
-        fullName: callData.client_info?.full_name || 'Unknown',
-        preferredName: callData.client_info?.preferred_name || '',
-        dob: callData.client_info?.dob || '',
-        age: callData.client_info?.age || 0,
-        address: callData.client_info?.address || '',
-        phone: callData.client_info?.phone || '',
-        email: callData.client_info?.email || 'N/A',
-        macNumber: callData.client_info?.mac_number || '',
-        macVerified: !!callData.client_info?.mac_number
+        fullName: callData.full_name || 'Unknown',
+        preferredName: callData.preferred_name || '',
+        dob: callData.dob || '',
+        age: callData.age || 0,
+        address: callData.address || '',
+        phone: callData.phone || '',
+        email: callData.email || 'N/A',
+        macNumber: callData.mac_number || ''
       },
-      dietary: {
-        allergies: callData.dietary?.allergies || [],
-        allergiesCritical: (callData.dietary?.allergies?.length || 0) > 0,
-        conditions: callData.dietary?.conditions || [],
-        texture: callData.dietary?.texture || 'Standard'
+      dietaryRequirements: {
+        texture: 'Standard',
+        allergies: callData.allergies || [],
+        needs: callData.dietary_needs || []
       },
       mealOrder: {
-        deliveryDay: callData.meal_order?.delivery_day || '',
-        deliveryDate: callData.meal_order?.delivery_date || '',
-        mealType: callData.meal_order?.meal_type || '',
-        mealSize: callData.meal_order?.meal_size || '',
-        aiRecommendation: callData.meal_order?.ai_recommendation || '',
-        items: callData.meal_order?.items || []
+        deliveryDay: callData.delivery_day || '',
+        deliveryDate: '',
+        mealType: 'Chilled',
+        mealSize: callData.meal_size || '',
+        aiRecommendation: callData.main_meal || '',
+        items: []
       },
       delivery: {
-        keySafe: callData.delivery?.key_safe || 'No',
-        keySafeCode: callData.delivery?.key_safe_code || '',
-        pets: callData.delivery?.pets || 'No',
-        accessPoint: callData.delivery?.access || '',
-        instructions: callData.delivery?.instructions || ''
+        keySafe: callData.key_safe_code ? 'Yes' : 'No',
+        keySafeCode: callData.key_safe_code || '',
+        pets: callData.pets || 'No',
+        accessPoint: callData.delivery_location || '',
+        instructions: ''
       },
       emergencyContact: {
-        name: callData.emergency_contact?.name || '',
-        relationship: callData.emergency_contact?.relationship || '',
-        phone: callData.emergency_contact?.phone || ''
+        name: callData.emergency_name || '',
+        relationship: callData.emergency_relationship || '',
+        phone: callData.emergency_phone || ''
       },
-      medicalFlags: callData.medical_flags || [],
+      medicalFlags: [],
       attachments: []
     };
     
@@ -69,7 +67,7 @@ async function sendIntakeEmail(callData) {
     await fs.mkdir(outputDir, { recursive: true });
     
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const clientName = (callData.client_info?.full_name || 'Client').replace(/\s+/g, '_');
+    const clientName = (callData.full_name || 'Client').replace(/\s+/g, '_');
     const filename = `intake-${clientName}-${timestamp}.html`;
     const filepath = path.join(outputDir, filename);
     
