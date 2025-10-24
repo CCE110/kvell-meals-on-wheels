@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const webhookRoutes = require('./routes/webhook');
+const webFormRoutes = require('./routes/web-form');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,19 +10,18 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static output files
 app.use('/output', express.static(path.join(__dirname, '../output')));
 
-// API routes
 app.use('/api', webhookRoutes);
+app.use('/api', webFormRoutes);
 
-// Health check
 app.get('/', (req, res) => {
   res.json({ 
     status: 'ok', 
     message: 'Kvell MOW API is running',
     endpoints: {
       webhook: '/api/webhook',
+      webForm: '/api/web-form',
       output: '/output'
     }
   });
