@@ -7,3 +7,5 @@ output/
 # Output files
 output/
 *.html
+*.txt
+*.log
