@@ -40,3 +40,16 @@ app.listen(PORT, host, () => {
 });
 
 module.exports = app;
+
+// Debug route to check public folder
+app.get('/debug-public', (req, res) => {
+  const fs = require('fs');
+  const publicPath = path.join(__dirname, '../public');
+  fs.readdir(publicPath, (err, files) => {
+    if (err) {
+      res.json({ error: err.message, path: publicPath });
+    } else {
+      res.json({ files, path: publicPath });
+    }
+  });
+});
