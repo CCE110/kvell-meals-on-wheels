@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KVELL Meals on Wheels - Order Form</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .form-content {
+            padding: 40px 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .required {
+            color: #e74c3c;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="date"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .day-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .day-option {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .day-option:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .day-option.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .day-option input[type="radio"] {
+            display: none;
+        }
+
+        .meal-options {
+            display: grid;
+            gap: 15px;
+        }
+
+        .meal-card {
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .meal-card:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .meal-card.selected {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .meal-card input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .meal-info {
+            flex: 1;
+        }
+
+        .meal-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .meal-description {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .checkbox-item:hover {
+            background: #f8f9ff;
+            border-color: #667eea;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            font-weight: 400;
+            cursor: pointer;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 30px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 60px 30px;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .success-icon {
+            font-size: 80px;
+            color: #27ae60;
+            margin-bottom: 20px;
+        }
+
+        .success-message h2 {
+            color: #27ae60;
+            margin-bottom: 15px;
+        }
+
+        .success-message p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                padding: 30px 20px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .form-content {
+                padding: 30px 20px;
+            }
+
+            .day-selector {
+                flex-direction: column;
+            }
+
+            .checkbox-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍽️ KVELL Meals on Wheels</h1>
+            <p>Order Your Weekly Meal Delivery</p>
+        </div>
+
+        <div class="form-content">
+            <form id="mealForm">
+                <!-- Personal Information -->
+                <div class="section">
+                    <h2 class="section-title">Personal Information</h2>
+                    
+                    <div class="form-group">
+                        <label for="full_name">Full Name <span class="required">*</span></label>
+                        <input type="text" id="full_name" name="full_name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="preferred_name">Preferred Name</label>
+                        <input type="text" id="preferred_name" name="preferred_name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dob">Date of Birth <span class="required">*</span></label>
+                        <input type="date" id="dob" name="dob" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Phone Number <span class="required">*</span></label>
+                        <input type="tel" id="phone" name="phone" required placeholder="0400 000 000">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" placeholder="your@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="address">Delivery Address <span class="required">*</span></label>
+                        <textarea id="address" name="address" required placeholder="Enter your full address"></textarea>
+                    </div>
+                </div>
+
+                <!-- Delivery Preferences -->
+                <div class="section">
+                    <h2 class="section-title">Delivery Preferences</h2>
+                    
+                    <div class="form-group">
+                        <label>Delivery Day <span class="required">*</span></label>
+                        <div class="day-selector">
+                            <label class="day-option">
+                                <input type="radio" name="delivery_day" value="Tuesday" required>
+                                <div>Tuesday</div>
+                            </label>
+                            <label class="day-option">
+                                <input type="radio" name="delivery_day" value="Wednesday" required>
+                                <div>Wednesday</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="delivery_location">Delivery Location <span class="required">*</span></label>
+                        <select id="delivery_location" name="delivery_location" required>
+                            <option value="">Select location...</option>
+                            <option value="front_door">Front Door</option>
+                            <option value="back_door">Back Door</option>
+                            <option value="side_entrance">Side Entrance</option>
+                            <option value="carport">Carport</option>
+                            <option value="other">Other (please specify in notes)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="key_safe_code">Key Safe Code (if applicable)</label>
+                        <input type="text" id="key_safe_code" name="key_safe_code" placeholder="Enter code">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pets">Do you have any pets? (Please specify)</label>
+                        <textarea id="pets" name="pets" placeholder="E.g., 1 friendly dog, 2 cats"></textarea>
+                    </div>
+                </div>
+
+                <!-- Meal Selection -->
+                <div class="section">
+                    <h2 class="section-title">Meal Selection</h2>
+                    
+                    <div class="form-group">
+                        <label>Choose Your Main Meal <span class="required">*</span></label>
+                        <div class="meal-options" id="mealOptions">
+                            <!-- Meals will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="meal_size">Meal Size <span class="required">*</span></label>
+                        <select id="meal_size" name="meal_size" required>
+                            <option value="">Select size...</option>
+                            <option value="regular">Regular</option>
+                            <option value="large">Large</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Dietary Requirements -->
+                <div class="section">
+                    <h2 class="section-title">Dietary Requirements</h2>
+                    
+                    <div class="form-group">
+                        <label>Allergies & Intolerances</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="allergy_nuts" name="allergies" value="nuts">
+                                <label for="allergy_nuts">Nuts</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="allergy_dairy" name="allergies" value="dairy">
+                                <label for="allergy_dairy">Dairy</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="allergy_gluten" name="allergies" value="gluten">
+                                <label for="allergy_gluten">Gluten</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="allergy_eggs" name="allergies" value="eggs">
+                                <label for="allergy_eggs">Eggs</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="allergy_seafood" name="allergies" value="seafood">
+                                <label for="allergy_seafood">Seafood</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="allergy_soy" name="allergies" value="soy">
+                                <label for="allergy_soy">Soy</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Dietary Preferences</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="diet_vegetarian" name="dietary_needs" value="vegetarian">
+                                <label for="diet_vegetarian">Vegetarian</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="diet_vegan" name="dietary_needs" value="vegan">
+                                <label for="diet_vegan">Vegan</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="diet_halal" name="dietary_needs" value="halal">
+                                <label for="diet_halal">Halal</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="diet_kosher" name="dietary_needs" value="kosher">
+                                <label for="diet_kosher">Kosher</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="diet_low_sodium" name="dietary_needs" value="low_sodium">
+                                <label for="diet_low_sodium">Low Sodium</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="diet_diabetic" name="dietary_needs" value="diabetic_friendly">
+                                <label for="diet_diabetic">Diabetic Friendly</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    Submit Order
+                </button>
+            </form>
+
+            <div class="success-message" id="successMessage">
+                <div class="success-icon">✓</div>
+                <h2>Order Submitted Successfully!</h2>
+                <p>Thank you for your order. We'll contact you shortly to confirm your delivery details.</p>
+                <p style="margin-top: 20px;">A confirmation email has been sent to rob@kvell.net</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Meal data based on delivery day
+        const meals = {
+            Tuesday: [
+                { value: 'beef_stew', name: 'Beef Stew', description: 'Tender beef with vegetables in rich gravy' },
+                { value: 'chicken_curry', name: 'Chicken Curry', description: 'Mild curry with rice' },
+                { value: 'vegetable_lasagne', name: 'Vegetable Lasagne', description: 'Layers of pasta with mixed vegetables' },
+                { value: 'fish_chips', name: 'Fish & Chips', description: 'Battered fish with potato chips' },
+                { value: 'shepherd_pie', name: 'Shepherd\'s Pie', description: 'Minced lamb with mashed potato topping' }
+            ],
+            Wednesday: [
+                { value: 'lamb_casserole', name: 'Lamb Casserole', description: 'Slow-cooked lamb with vegetables' },
+                { value: 'chicken_schnitzel', name: 'Chicken Schnitzel', description: 'Crumbed chicken with salad' },
+                { value: 'vegetarian_pasta', name: 'Vegetarian Pasta', description: 'Pasta with roasted vegetables' },
+                { value: 'roast_pork', name: 'Roast Pork', description: 'Roasted pork with apple sauce' },
+                { value: 'thai_green_curry', name: 'Thai Green Curry', description: 'Mild coconut curry with rice' }
+            ]
+        };
+
+        // Handle day selection
+        document.querySelectorAll('.day-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.day-option').forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                const day = this.querySelector('input').value;
+                updateMealOptions(day);
+            });
+        });
+
+        // Update meal options based on selected day
+        function updateMealOptions(day) {
+            const container = document.getElementById('mealOptions');
+            container.innerHTML = '';
+            
+            meals[day].forEach(meal => {
+                const mealCard = document.createElement('label');
+                mealCard.className = 'meal-card';
+                mealCard.innerHTML = `
+                    <input type="radio" name="main_meal" value="${meal.value}" required>
+                    <div class="meal-info">
+                        <div class="meal-name">${meal.name}</div>
+                        <div class="meal-description">${meal.description}</div>
+                    </div>
+                `;
+                container.appendChild(mealCard);
+
+                // Add selection styling
+                mealCard.addEventListener('click', function() {
+                    document.querySelectorAll('.meal-card').forEach(card => card.classList.remove('selected'));
+                    this.classList.add('selected');
+                });
+            });
+        }
+
+        // Initialize with Tuesday meals
+        updateMealOptions('Tuesday');
+
+        // Handle form submission
+        document.getElementById('mealForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            // Collect form data
+            const formData = new FormData(this);
+            const data = {
+                full_name: formData.get('full_name'),
+                preferred_name: formData.get('preferred_name'),
+                dob: formData.get('dob'),
+                phone: formData.get('phone'),
+                email: formData.get('email'),
+                address: formData.get('address'),
+                delivery_day: formData.get('delivery_day'),
+                delivery_location: formData.get('delivery_location'),
+                key_safe_code: formData.get('key_safe_code'),
+                pets: formData.get('pets'),
+                main_meal: formData.get('main_meal'),
+                meal_size: formData.get('meal_size'),
+                allergies: formData.getAll('allergies'),
+                dietary_needs: formData.getAll('dietary_needs')
+            };
+
+            try {
+                const response = await fetch('https://kvell-meals-on-wheels-production.up.railway.app/api/web-form', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    document.getElementById('mealForm').style.display = 'none';
+                    document.getElementById('successMessage').classList.add('show');
+                } else {
+                    throw new Error('Submission failed');
+                }
+            } catch (error) {
+                alert('There was an error submitting your order. Please try again or contact us directly.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Order';
+            }
+        });
+    </script>
+</body>
+</html>
