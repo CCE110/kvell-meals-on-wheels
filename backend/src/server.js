@@ -53,3 +53,8 @@ app.get('/debug-public', (req, res) => {
     }
   });
 });
+
+// Explicit route for meal form
+app.get('/meal-form.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/meal-form.html'));
+});
